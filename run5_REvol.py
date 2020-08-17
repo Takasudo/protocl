@@ -29,7 +29,7 @@ plt.rcParams["xtick.direction"] = "in"
 plt.rcParams["ytick.direction"] = "in"
 
 N = len(snap)
-Rbins = 25
+Rbins = 30
 cl_radius = np.array([[np.zeros(Rbins) for k1 in range (len(z0idlist))] for l1 in range (N)])
 cl_sfrd = np.array([[np.zeros(Rbins) for k2 in range (len(z0idlist))] for l2 in range (N)])
 
@@ -67,10 +67,7 @@ for j in range (len(z0idlist)):
 
 #--- plot
 
-fig, ax = plt.subplots(N,1,figsize=(8,20))
-
-list_score = [0.2, 0.2, 0.2, 0.2, 0.2, 0.2]
-list_scl = [5, 5, 5, 5, 5, 5]
+fig, ax = plt.subplots(N,1,figsize=(8,22))
 
 j=0
 for i in range(N):
@@ -87,32 +84,57 @@ for i in range(N):
             al = 0.8 * (1+(j-20))**(-0.5)
         al = 0.3
 
-        ax[i].set_xscale("log")
-        ax[i].set_yscale("log")
-        ax[i].set_xlim(1e1, 3e4)
-        ax[i].set_ylim(1e-3, 1e3)
-        
-        ax[i].plot(cl_radius[i][j], cl_radius[i][j] ** 3.0 * cl_sfrd[i][j], c=cl, lw=0, marker='+', ms=5, alpha=al)
-        ax[i].plot(cl_radius[i][j], cl_radius[i][j] ** 3.0 * cl_sfrd_mean[i], lw=0, c='black', marker='+',ms=15, markeredgewidth=2, alpha=0.5)
-
-        # for legend
-        ax[i].plot(cl_radius[i][j - 1], cl_radius[i][j - 1] ** 3.0 * cl_sfrd_mean[i], lw=0, c='black', marker='+', ms=15,
-                 markeredgewidth=2, label='Illustris')
-
-        # rho.pdf from z_evol.py
-
         tgyr = age[i]
-
         r_core = Rcore_fit(tgyr, Rc1_bin1, Rc2_bin1)
         r_cl = Rproto_fit(tgyr, Rp1_bin1, Rp2_bin1, Rp3_bin1)
 
-        ax[i].plot(radius_list, rs * rho0vec(radius_list, tgyr, list_score[i]), ls='-.', color='red', label='core',lw=1.5)
-        ax[i].plot(radius_list, rs * rho1vec(radius_list, tgyr, list_scl[i]), ls='-.', color='blue', label='CL', lw=1.5)
+        #ax[i].plot(cl_radius[i][j] , cl_radius[i][j] ** 3.0 * cl_sfrd[i][j], c=cl, lw=0, marker='+', ms=5, alpha=al)
+        #ax[i].plot(cl_radius[i][j] , cl_radius[i][j] ** 3.0 * cl_sfrd_mean[i], lw=0, c='black', marker='+',ms=15, markeredgewidth=2, alpha=0.5)
+
+        ax[i].plot(cl_radius[i][j] * co2ph[i], cl_radius[i][j] ** 3.0 * cl_sfrd[i][j], c=cl, lw=0, marker='+', ms=5, alpha=al)
+        ax[i].plot(cl_radius[i][j] * co2ph[i], cl_radius[i][j] ** 3.0 * cl_sfrd_mean[i], lw=0, c='black', marker='+',ms=15, markeredgewidth=2, alpha=0.5)
+
+        # for legend
+        #ax[i].plot(cl_radius[i][j - 1], cl_radius[i][j - 1] ** 3.0 * cl_sfrd_mean[i], lw=0, c='black', marker='+', ms=15,
+        #         markeredgewidth=2, label='Illustris')
 
         j+=1
 
-ax[i].set_xlabel("Radius r [ckpc/h]",fontsize=13)
-ax[i].set_ylabel(r"$r^3 \dot{\rho}_*$ [M$_\odot$ yr$^{-1}$]", fontsize=13)
-#ax[i].legend()
+for i in range(N):
+    # rho.pdf from z_evol.py
+
+    tgyr = age[i]
+
+    #r_core = Rcore_fit(tgyr, Rc1_bin1, Rc2_bin1)
+    #r_cl = Rproto_fit(tgyr, Rp1_bin1, Rp2_bin1, Rp3_bin1)
+
+    r_core = Rcore_fit(tgyr, Rc1_bin1, Rc2_bin1) * co2ph[i]
+    r_cl = Rproto_fit(tgyr, Rp1_bin1, Rp2_bin1, Rp3_bin1) * co2ph[i]
+
+    score = 0.1
+    scl = 5.0 * (1+tgyr/7.0)**(-2.0)
+
+    #ax[i].plot(radius_list , rs * rho0vec(radius_list, tgyr, score), ls='-.', color='red', label='core', lw=1.5)
+    #ax[i].plot(radius_list , rs * rho1vec(radius_list, tgyr, scl), ls='-.', color='blue', label='CL', lw=1.5)
+
+    ax[i].plot(radius_list *co2ph[i], rs * rho0vec(radius_list, tgyr, score), ls='-.', color='red', label='core', lw=1.5)
+    ax[i].plot(radius_list *co2ph[i], rs * rho1vec(radius_list, tgyr, scl), ls='-.', color='blue', label='CL', lw=1.5)
+
+    ax[i].set_xscale("log")
+    ax[i].set_yscale("log")
+    ax[i].set_xlim(1e1, 3e4)
+    #ax[i].set_xlim(1e-3,1e2)
+    ax[i].set_ylim(1e-3, 1e3)
+
+    ax[i].plot([r_core,r_core],[1e-2,1e2],ls=':',color='black', lw=1.2)
+    ax[i].text(0.9*r_core,6e-3,r'$R_{\rm core}$',fontsize=12)
+    ax[i].plot([r_cl, r_cl], [1e-2, 1e2], ls=':', color='black', lw=1.2)
+    ax[i].text(0.9*r_cl,6e-3,r'$R_{\rm CL}$',fontsize=12)
+
+    ax[i].text(15, 200, 'z='+str(redshift[i])+' ('+str(tgyr)+' Gyr)', fontsize=16)
+
+    #ax[i].set_xlabel("Radius r [ckpc/h]",fontsize=13)
+    ax[i].set_xlabel("Radius r [(physical) kpc]", fontsize=13)
+    ax[i].set_ylabel(r"$r^3 \dot{\rho}_*$ [M$_\odot$ yr$^{-1}$]", fontsize=13)
 
 plt.savefig("fig_r_protocr_"+str(calclabel)+"_m"+str(mbin)+".pdf",bbox_inches='tight')

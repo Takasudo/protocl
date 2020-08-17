@@ -31,6 +31,8 @@ print(z0idlist_bin1)
 
 N = len(snap)
 
+co2ph = np.zeros(N)
+
 R_core_bin1 = np.zeros((len(z0idlist_bin1),N))
 R_cl_bin1 = np.zeros((len(z0idlist_bin1),N))
 R_100_bin1 = np.zeros((len(z0idlist_bin1),N))
@@ -43,6 +45,7 @@ for z0id in z0idlist_bin1:
     j = 0
     for snapnum in snap:
         npz = np.load('npzfiles/proto_radial_data_FixRmax_snap' + str(snap[j]) + "_z0id" + str(z0idlist_bin1[i]) + "_" + str(calclabel) + ".npz")
+        co2ph[j] = npz['conv']
         R_core_bin1[i][j] = npz['size_core']
         R_cl_bin1[i][j] = npz['size_50']
         R_100_bin1[i][j] = npz['size_100']
@@ -91,12 +94,13 @@ def SFRcore_fit(t_gyr, a, b, c):
 # fit param (c : core, p : proto)
 
 # bin 0, 50% radius
-
+'''
 Rc1_bin1, Rc2_bin1 = 0.3e3, 0.6
 Rp1_bin1, Rp2_bin1, Rp3_bin1 = 1.5e4,10.0,3.0
 
 Sc1_bin1, Sc2_bin1, Sc3_bin1 = 0.5e3,4.0,3.0
 Sp1_bin1, Sp2_bin1, Sp3_bin1 = 2.e4,9.0,8.0
+'''
 
 # bin 0, 80% radius  
 '''
@@ -108,13 +112,12 @@ Sp1_bin1, Sp2_bin1, Sp3_bin1 = 3.e4,5.0,6.0
 '''
 
 # bin 0, 100% radius 
-'''
-Rc1_bin1, Rc2_bin1 = 0.3e3, 0.6
-Rp1_bin1, Rp2_bin1, Rp3_bin1 = 1.5e4,12.0,1.5
 
-Sc1_bin1, Sc2_bin1, Sc3_bin1 = 0.5e3,4.0,3.0
-Sp1_bin1, Sp2_bin1, Sp3_bin1 = 2.e4,3.5,5.0  
-'''
+Rc1_bin1, Rc2_bin1 = 0.3e3, 0.6
+Rp1_bin1, Rp2_bin1, Rp3_bin1 = 1.5e4,10.0,3.0
+
+Sc1_bin1, Sc2_bin1, Sc3_bin1 = 1.e3,4.0,3.0
+Sp1_bin1, Sp2_bin1, Sp3_bin1 = 2.e4,8.0,6.0
 
 # bin 1
 '''
@@ -183,11 +186,12 @@ ax2.plot(np.array(age),SFRcore_fit(np.array(age[:]),Sc1_bin1, Sc2_bin1, Sc3_bin1
 ax2.plot(np.array(age),SFRproto_fit(np.array(age[:]),Sp1_bin1, Sp2_bin1, Sp3_bin1 ), lw=2, color='blue', ls=':', alpha=0.6)
 
 # compare with R_50, mbin=0
-
+'''
 ax1.plot(np.array(age),Rcore_fit(np.array(age[:]),0.3e3, 0.6), lw=1, color='red', ls=':', alpha=0.4)
 ax1.plot(np.array(age),Rproto_fit(np.array(age[:]),1.5e4,10.0,3.0), lw=1, color='blue', ls=':', alpha=0.4)
 ax2.plot(np.array(age),SFRcore_fit(np.array(age[:]),0.5e3,4.0,3.0), lw=1, color='red', ls=':', alpha=0.4)
 ax2.plot(np.array(age),SFRproto_fit(np.array(age[:]),2.e4,9.0,8.0), lw=1, color='blue', ls=':', alpha=0.4)
+'''
 
 # Cosmic SFRD
 '''
@@ -224,12 +228,19 @@ def rho0f0(r,t,s_0):
     SFRcore = SFRcore_fit(t,Sc1_bin1, Sc2_bin1, Sc3_bin1)
     Rcore = Rcore_fit(t,Rc1_bin1, Rc2_bin1)
     #
-    tmp1 = SFRcore / (pi * s_0**3.0 * Rcore**3.0)
-    tmp2 = sqrt(pi) * erf(1/s_0) - 2.0 * exp(-1/s_0**2.0)/s_0
+    ## (1) : exp(-r**2)
+    #tmp1 = SFRcore / (pi * s_0**3.0 * Rcore**3.0)
+    #tmp2 = sqrt(pi) * erf(1/s_0) - 2.0 * exp(-1/s_0**2.0)/s_0
+    #radial = exp(-(r/(s_0*Rcore))**2.0)
+    #result = tmp1/tmp2 * radial
     #
-    radial = exp(-(r/(s_0*Rcore))**2.0)
+    ## (2) : exp(-r)
+    tmp1 = SFRcore / (4.0 * pi * s_0**3.0 * Rcore**3.0)
+    tmp2 = 2.0 - ((1/s_0)*(1/s_0 + 2.0) + 2.0) * exp(-1/s_0)
+    radial = exp(-r/(s_0*Rcore))
+    result = tmp1 / tmp2 * radial
     #
-    return tmp1/tmp2 * radial
+    return result
 
 def rho1f1(r,t,s_1):
     # t in [Gyr]  
@@ -239,80 +250,28 @@ def rho1f1(r,t,s_1):
     Rcore =  Rcore_fit(t,Rc1_bin1, Rc2_bin1)
     Rproto = Rproto_fit(t,Rp1_bin1, Rp2_bin1, Rp3_bin1)
     #
-    ratio = (Rproto/Rcore)**2.0
-    tmp1 = 3.0 * (SFRproto - SFRcore) / (4.0 * pi * Rproto**3.0)
-    tmp2 = hyp2f1(1.5, s_1, 2.5, -ratio)
-    radial1 = (1 + (r/Rcore)**2.0)**(-s_1)
-    result1 = tmp1/tmp2 * radial1
+    Rcut = s_1 * Rcore
+    #Rcut = Rcore + (Rproto - Rcore) / s_1
     #
-    Rcut = Rcore + (Rproto - Rcore) / s_1
-    r_tmp = Rproto / Rcut
-    tmp3 = (SFRproto - SFRcore)/ (pi * Rcut**3.0)
-    tmp4 = sqrt(pi) * erf(r_tmp) - 2.0 * exp(-r_tmp**2.0)*r_tmp
-    radial2 = exp(-(r/Rcut)**2.0)
-    result2 = tmp3/tmp4 * radial2 # Normalization : r = 0 to Rcut
+    ## (1) : exp(-r**2)
+    ## result 1 : normalization from r = 0 to Rcut
+    ## result 2 : normalization from r = 0 to infty
+    #r_tmp = Rproto / Rcut
+    #tmp1 = (SFRproto - SFRcore)/ (pi * Rcut**3.0)
+    #tmp2 = sqrt(pi) * erf(r_tmp) - 2.0 * exp(-r_tmp**2.0)*r_tmp
+    #radial = exp(-(r/Rcut)**2.0)
+    #result1 = tmp1/tmp1 * radial
+    #result2 = tmp1 / 4.0 / 0.443 * radial
     #
-    tmp5 = 0.443 
-    result3 = tmp3 / 4.0 / tmp5 * radial2  # Normalization : r = 0 to infty
-    return result3
+    ## (2) : exp(-r)
+    tmp1 = (SFRproto - SFRcore)/ (4.0 * pi * Rcut**3.0)
+    radial = exp(-(r / Rcut))
+    result = tmp1 / 2.0 * radial
+    #
+    return result
 
 rho0vec = np.vectorize(rho0f0)
 rho1vec = np.vectorize(rho1f1)
 
-def t_pp(r,t):
-    Rcore = Rcore_fit(t, Rc1_bin1, Rc2_bin1)
-    n_0 = 0.01 # [cm^-3]
-    n_gas = n_0 * (1 + (r/Rcore)**2.0)**(-1.2)
-    pp_rate = 0.5 * n_gas * 3.e-26 * 3.e10 # [s^-1]
-    t_pp_myr = 1./(pp_rate*3.15e13)  # [Myr]
-    return t_pp_myr
-
-def diffCoef(r,t):
-    Rcore = Rcore_fit(t, Rc1_bin1, Rc2_bin1)
-    B_0 = 3.0 # [micro G]
-    B = B_0 * (1 + (r/Rcore)**2.0)**(-1.2)
-    xi_B = 1000.
-    E_pev = 1.0
-    D_bohm = 0.3 * E_pev / B # [10^29 cm^2/s] for E = PeV
-    return xi_B * D_bohm
-
-tpp_vec = np.vectorize(t_pp)
-D_vec = np.vectorize(diffCoef)
-
 radius_list = np.logspace(0,4.5,50)
 rs = radius_list**3
-
-tgyr = 3.285
-'''
-fig = plt.figure(figsize=(5.5,5.5))
-ax1 = fig.add_subplot(111)
-
-# rho
-
-ax1.plot(radius_list, rs * rho0vec(radius_list,tgyr,0.1),ls=':',color='red',label='core (s=0.1)',lw=2)
-ax1.plot(radius_list, rs * rho0vec(radius_list,tgyr,1),ls='-',color='red',label='core (s=1)',lw=2)
-ax1.plot(radius_list, rs * rho1vec(radius_list,tgyr,5),ls='-',color='blue',label='CL (s=5)',lw=2)
-ax1.plot(radius_list, rs * rho1vec(radius_list,tgyr,2),ls='--',color='blue',label='CL (s=2)',lw=2)
-ax1.plot(radius_list, rs * rho1vec(radius_list,tgyr,1),ls=':',color='blue',label='CL (s=1)',lw=2)
-ymax = np.max(rs * rho1vec(radius_list,tgyr,3)) * 5e1
-ymin = np.max(rs * rho0vec(radius_list,tgyr,1)) * 5e-3
-ax1.set_ylim(ymin,ymax)
-ax1.set_xscale("log")
-ax1.set_yscale("log")
-
-ax1.set_xlabel("Radius $r$ [ckpc/h]",fontsize=14)
-ax1.set_ylabel(r"$r^3 \dot{\rho}_*$ [M$_\odot$ yr$^{-1}$]", fontsize=14)
-
-# t_pp, D
-
-tpp_list = tpp_vec(radius_list, tgyr)
-D_list = D_vec(radius_list, tgyr)
-
-ax1.loglog(radius_list, tpp_list/tpp_list[0], ls=':', color='gray',alpha=0.7, lw=1.5)
-ax1.text(0.25e3,1e3,r'$(1+{r^2}/{R_{\rm core}^2})^{1.2}$',color='gray',fontsize=13,alpha=0.7)
-
-# savefig
-
-ax1.legend(loc='upper left')
-plt.savefig("rho.pdf")
-'''
