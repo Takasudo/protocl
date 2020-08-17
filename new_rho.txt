@@ -1,0 +1,1 @@
+change exp(-r**2.0) to exp(-r)
