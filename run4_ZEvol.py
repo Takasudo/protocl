@@ -227,7 +227,7 @@ def rho0f0(r,t,s_0):
     tmp1 = SFRcore / (pi * s_0**3.0 * Rcore**3.0)
     tmp2 = sqrt(pi) * erf(1/s_0) - 2.0 * exp(-1/s_0**2.0)/s_0
     #
-    radial = exp(-(r/(s_0*Rcore))) ## originally (r/(s_0*Rcut))**2.0
+    radial = exp(-(r/(s_0*Rcore))**2.0)
     #
     return tmp1/tmp2 * radial
 
@@ -249,7 +249,7 @@ def rho1f1(r,t,s_1):
     r_tmp = Rproto / Rcut
     tmp3 = (SFRproto - SFRcore)/ (pi * Rcut**3.0)
     tmp4 = sqrt(pi) * erf(r_tmp) - 2.0 * exp(-r_tmp**2.0)*r_tmp
-    radial2 = exp(-(r/Rcut)) ## originally (r/Rcut)**2.0
+    radial2 = exp(-(r/Rcut)**2.0)
     result2 = tmp3/tmp4 * radial2 # Normalization : r = 0 to Rcut
     #
     tmp5 = 0.443 
